@@ -1,0 +1,9 @@
+# TaskStatus.msg
+uint8 state
+uint8 IDLE=0
+uint8 MOVING=1
+uint8 GRASPING=2
+uint8 DELIVERING=3
+uint8 ERROR=4
+float32 progress
+string message

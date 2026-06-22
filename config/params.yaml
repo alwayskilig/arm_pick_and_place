@@ -1,0 +1,49 @@
+vision_node:
+  ros__parameters:
+    target_color: "red"
+    min_area: 500
+    max_area: 50000
+    camera_frame: "camera_link"
+    camera_topic: "/camera/image"
+    detection_threshold: 0.5
+
+arm_controller:
+  ros__parameters:
+    arm_joint_names: 
+      - "arm_joint1"
+      - "arm_joint2"
+      - "arm_joint3"
+      - "arm_joint4"
+      - "arm_joint5"
+    max_velocity: 0.5
+    max_acceleration: 1.0
+    home_position: [0.0, 0.0, 0.0, 0.0, 0.0]
+    pick_height: 0.1
+    place_height: 0.1
+    position_tolerance: 0.01
+    use_jump_mode: true
+    jump_height: 0.05
+
+gripper_controller:
+  ros__parameters:
+    open_position: 0.04
+    close_position: 0.0
+    close_force: 20.0
+    action_timeout: 5.0
+
+task_scheduler:
+  ros__parameters:
+    pick_position: [0.3, 0.0, 0.1]
+    place_position: [-0.3, 0.0, 0.1]
+    safe_height: 0.3
+    move_timeout: 10.0
+
+pan_tilt_control:
+  ros__parameters:
+    enable_pan_tilt: true
+    angular_vel_y: 10.0
+    angular_vel_z: 45.0
+    scan_range_y: 30.0
+    scan_range_z: 60.0
+    auto_scan: true
+    scan_interval: 2.0
