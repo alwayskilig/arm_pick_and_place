@@ -65,7 +65,13 @@ pip install opencv-python numpy
 
 ```bash
 cd ~/ros2_ws
+
+# 编译所有包（含子包）
+colcon build
+
+# 或者只编译需要的包
 colcon build --packages-select arm_pick_and_place vision_node arm_controller gripper_controller task_scheduler
+
 source install/setup.bash
 ```
 
