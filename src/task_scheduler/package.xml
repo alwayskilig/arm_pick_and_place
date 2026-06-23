@@ -7,8 +7,7 @@
   <maintainer email="user@todo.todo">user</maintainer>
   <license>Apache License 2.0</license>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
-  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+  <buildtool_depend>ament_python</buildtool_depend>
 
   <depend>rclpy</depend>
   <depend>geometry_msgs</depend>
@@ -16,7 +15,7 @@
   <depend>std_msgs</depend>
   <depend>arm_pick_and_place</depend>
 
-  <exec_depend>rosidl_default_runtime</exec_depend>
+
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
