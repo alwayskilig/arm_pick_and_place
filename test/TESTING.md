@@ -196,7 +196,7 @@ python3 test/test_system.py
 
 ### 2. 节点启动失败
 - 检查Python依赖是否安装: `pip install opencv-python numpy`
-- 检查cv_bridge是否安装: `sudo apt-get install ros-galactic-cv-bridge`
+- 检查cv_bridge是否安装: `sudo apt-get install ros-humble-cv-bridge`
 
 ### 3. 话题通信失败
 - 检查节点是否正常运行: `ros2 node list`

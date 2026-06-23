@@ -110,6 +110,9 @@ class PanTiltController(Node):
         else:
             # 追踪模式 - 平滑移动到目标角度
             self.smooth_move_to_target()
+        
+        # 发布控制消息
+        self.publish_control()
     
     def execute_scan(self):
         """执行扫描序列"""
@@ -138,20 +141,16 @@ class PanTiltController(Node):
     
     def publish_state(self):
         """发布云台状态"""
-        msg = PoseStamped()
+        msg = PanTiltInfo()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'pan_tilt_link'
-        
-        # 将角度转换为位姿（简化表示）
-        msg.pose.position.x = 0.0
-        msg.pose.position.y = math.radians(self.current_angle_y)
-        msg.pose.position.z = math.radians(self.current_angle_z)
-        
-        # 使用四元数表示旋转
-        msg.pose.orientation.w = 1.0
-        msg.pose.orientation.x = 0.0
-        msg.pose.orientation.y = math.sin(math.radians(self.current_angle_y) / 2)
-        msg.pose.orientation.z = math.sin(math.radians(self.current_angle_z) / 2)
+        msg.version = 0
+        msg.angular_vel_y = 0.0  # 当前角速度，暂设为0
+        msg.angle_y = self.current_angle_y  # 角度，单位：度
+        msg.offset_y = 0.0
+        msg.angular_vel_z = 0.0
+        msg.angle_z = self.current_angle_z
+        msg.offset_z = 0.0
         
         self.state_pub.publish(msg)
     

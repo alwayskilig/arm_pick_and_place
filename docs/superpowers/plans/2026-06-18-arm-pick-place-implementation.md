@@ -6,7 +6,7 @@
 
 **Architecture:** 采用多节点模块化架构，每个功能模块作为独立的ROS2节点，通过话题通信。使用Gazebo Classic进行仿真，OpenCV进行视觉识别。
 
-**Tech Stack:** ROS2 Galactic+, Gazebo Classic, OpenCV 4.5+, Python 3.8+, MoveIt
+**Tech Stack:** ROS2 Humble+, Gazebo Classic, OpenCV 4.5+, Python 3.8+, MoveIt
 
 ---
 
@@ -1652,12 +1652,12 @@ def generate_launch_description():
 ```bash
 # 安装ROS2依赖
 sudo apt-get install -y \
-    ros-galactic-rclpy \
-    ros-galactic-sensor-msgs \
-    ros-galactic-geometry-msgs \
-    ros-galactic-std-msgs \
-    ros-galactic-tf2-ros \
-    ros-galactic-cv-bridge
+    ros-humble-rclpy \
+    ros-humble-sensor-msgs \
+    ros-humble-geometry-msgs \
+    ros-humble-std-msgs \
+    ros-humble-tf2-ros \
+    ros-humble-cv-bridge
 
 # 安装Python依赖
 pip install opencv-python numpy

@@ -7,7 +7,7 @@
 **项目目标**：控制移动机器人搭载的多自由度机械臂，结合视觉定位，完成目标物体抓取、定点递送、放置复位整套流程，模拟小型物料搬运、物品递送作业。
 
 **技术栈**：
-- 开发框架：ROS2 (Galactic+)
+- 开发框架：ROS2 (Humble+)
 - 仿真环境：Gazebo Classic
 - 视觉处理：OpenCV 4.5+
 - 机械臂模型：WPR系列仿真机器人
@@ -286,14 +286,14 @@ arm_pick_and_place/
 
 | 依赖包 | 用途 | 版本要求 |
 |-------|------|---------|
-| `rclpy` | ROS2 Python客户端 | Galactic+ |
-| `sensor_msgs` | 传感器消息 | Galactic+ |
-| `geometry_msgs` | 几何消息 | Galactic+ |
-| `std_msgs` | 标准消息 | Galactic+ |
+| `rclpy` | ROS2 Python客户端 | Humble+ |
+| `sensor_msgs` | 传感器消息 | Humble+ |
+| `geometry_msgs` | 几何消息 | Humble+ |
+| `std_msgs` | 标准消息 | Humble+ |
 | `opencv-python` | 图像处理 | 4.5+ |
 | `numpy` | 数值计算 | 1.20+ |
-| `moveit` | 运动规划 | Galactic+ |
-| `tf2_ros` | 坐标变换 | Galactic+ |
+| `moveit` | 运动规划 | Humble+ |
+| `tf2_ros` | 坐标变换 | Humble+ |
 
 ## 启动流程
 
