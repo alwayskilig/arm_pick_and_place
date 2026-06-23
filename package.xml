@@ -16,10 +16,6 @@
   <exec_depend>rosidl_default_runtime</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
-  <exec_depend>vision_node</exec_depend>
-  <exec_depend>arm_controller</exec_depend>
-  <exec_depend>gripper_controller</exec_depend>
-  <exec_depend>task_scheduler</exec_depend>
 
   <member_of_group>rosidl_interface_packages</member_of_group>
 
