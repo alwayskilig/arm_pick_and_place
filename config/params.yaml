@@ -6,6 +6,13 @@ vision_node:
     camera_frame: "camera_link"
     camera_topic: "/camera/image"
     detection_threshold: 0.5
+    # 相机内参（需要根据实际相机标定调整）
+    camera_fx: 500.0    # 焦距x
+    camera_fy: 500.0    # 焦距y
+    camera_cx: 320.0    # 光心x
+    camera_cy: 240.0    # 光心y
+    camera_depth_scale: 0.001  # 深度比例因子
+    default_depth: 0.5  # 默认深度（无深度相机时）
 
 arm_controller:
   ros__parameters:
@@ -38,7 +45,7 @@ task_scheduler:
     safe_height: 0.3
     move_timeout: 10.0
 
-pan_tilt_control:
+pan_tilt_controller:
   ros__parameters:
     enable_pan_tilt: true
     angular_vel_y: 10.0

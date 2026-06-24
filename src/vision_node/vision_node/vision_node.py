@@ -18,12 +18,28 @@ class VisionNode(Node):
         self.declare_parameter('camera_frame', 'camera_link')
         self.declare_parameter('camera_topic', '/camera/image')
         
+        # 相机内参参数（需要根据实际相机标定）
+        self.declare_parameter('camera_fx', 500.0)  # 焦距x
+        self.declare_parameter('camera_fy', 500.0)  # 焦距y
+        self.declare_parameter('camera_cx', 320.0)  # 光心x
+        self.declare_parameter('camera_cy', 240.0)  # 光心y
+        self.declare_parameter('camera_depth_scale', 0.001)  # 深度比例因子
+        self.declare_parameter('default_depth', 0.5)  # 默认深度（无深度相机时）
+        
         # 获取参数
         self.target_color = self.get_parameter('target_color').value
         self.min_area = self.get_parameter('min_area').value
         self.max_area = self.get_parameter('max_area').value
         self.camera_frame = self.get_parameter('camera_frame').value
         camera_topic = self.get_parameter('camera_topic').value
+        
+        # 获取相机内参
+        self.fx = self.get_parameter('camera_fx').value
+        self.fy = self.get_parameter('camera_fy').value
+        self.cx = self.get_parameter('camera_cx').value
+        self.cy = self.get_parameter('camera_cy').value
+        self.depth_scale = self.get_parameter('camera_depth_scale').value
+        self.default_depth = self.get_parameter('default_depth').value
         
         # OpenCV桥接器
         self.bridge = CvBridge()
@@ -42,6 +58,7 @@ class VisionNode(Node):
             10)
         
         self.get_logger().info(f'Vision node initialized, subscribing to: {camera_topic}')
+        self.get_logger().info(f'Camera intrinsics: fx={self.fx}, fy={self.fy}, cx={self.cx}, cy={self.cy}')
     
     def image_callback(self, msg):
         try:
@@ -53,7 +70,7 @@ class VisionNode(Node):
             
             if target_pose is not None:
                 self.pose_pub.publish(target_pose)
-                self.get_logger().info(f'Target detected at: {target_pose.pose.position}')
+                self.get_logger().info(f'Target detected at: x={target_pose.pose.position.x:.3f}, y={target_pose.pose.position.y:.3f}, z={target_pose.pose.position.z:.3f}')
                 
         except Exception as e:
             self.get_logger().error(f'Error processing image: {e}')
@@ -102,11 +119,19 @@ class VisionNode(Node):
                     pose_msg.header.stamp = self.get_clock().now().to_msg()
                     pose_msg.header.frame_id = self.camera_frame
                     
-                    # 简单的位姿估计（需要相机内参进行精确计算）
-                    # 这里使用像素坐标作为x,y，假设z为固定值
-                    pose_msg.pose.position.x = float(cx) / 1000.0  # 简单转换
-                    pose_msg.pose.position.y = float(cy) / 1000.0
-                    pose_msg.pose.position.z = 0.5  # 假设距离
+                    # 使用相机内参计算3D坐标
+                    # 像素坐标 -> 相机坐标系
+                    # X_cam = (u - cx) * Z / fx
+                    # Y_cam = (v - cy) * Z / fy
+                    # Z_cam = depth (默认深度)
+                    
+                    z = self.default_depth  # 默认深度
+                    x = (cx - self.cx) * z / self.fx
+                    y = (cy - self.cy) * z / self.fy
+                    
+                    pose_msg.pose.position.x = x
+                    pose_msg.pose.position.y = y
+                    pose_msg.pose.position.z = z
                     
                     pose_msg.pose.orientation.w = 1.0
                     

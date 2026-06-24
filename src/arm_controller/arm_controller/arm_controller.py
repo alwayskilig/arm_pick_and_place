@@ -46,6 +46,13 @@ class ArmController(Node):
         self.is_moving = False
         self.goal_reached = True
 
+        # 订阅仿真环境的关节状态
+        self.joint_state_sub = self.create_subscription(
+            JointState,
+            '/joint_states',
+            self.joint_state_callback,
+            10)
+
         self.target_sub = self.create_subscription(
             PoseStamped,
             '/vision/target_pose',
@@ -58,6 +65,13 @@ class ArmController(Node):
             self.command_callback,
             10)
 
+        # 发布到仿真环境的机械臂控制话题
+        self.mani_ctrl_pub = self.create_publisher(
+            JointState,
+            '/wpb_home/mani_ctrl',
+            10)
+
+        # 发布状态
         self.joint_pub = self.create_publisher(
             JointState,
             '/arm/joint_states',
@@ -76,8 +90,17 @@ class ArmController(Node):
 
         self.timer = self.create_timer(0.1, self.timer_callback)
 
-        self.get_logger().info('Arm controller initialized')
+        self.get_logger().info('Arm controller initialized (simulation mode)')
         self.get_logger().info(f'Jump mode: {self.use_jump_mode}, Jump height: {self.jump_height}')
+
+    def joint_state_callback(self, msg):
+        """接收仿真环境的关节状态"""
+        # 更新当前关节角度（如果有对应名称的关节）
+        for i, name in enumerate(msg.name):
+            if name in self.joint_names:
+                idx = self.joint_names.index(name)
+                if i < len(msg.position):
+                    self.current_joints[idx] = msg.position[i]
 
     def timer_callback(self):
         """定时器回调 - 发布状态和检测目标到达"""
@@ -135,6 +158,9 @@ class ArmController(Node):
                 self.current_joints[i] = start_joints[i] + \
                     (target_joints[i] - start_joints[i]) * smooth_progress
 
+            # 发布到仿真环境
+            self.publish_mani_ctrl()
+
             time.sleep(0.01)
 
         self.current_joints = target_joints.copy()
@@ -143,6 +169,34 @@ class ArmController(Node):
 
         self.publish_status(TaskStatus.IDLE, 1.0, 'Movement complete')
         self.publish_goal_reached(True)
+    
+    def publish_mani_ctrl(self):
+        """发布机械臂控制到仿真环境"""
+        msg = JointState()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        
+        # WPR机器人机械臂关节映射
+        # joint[0] = lift (升降)
+        # joint[1] = arm (旋转)
+        # joint[2] = gripper (夹爪)
+        msg.name = ['lift', 'arm', 'gripper']
+        
+        # 转换关节角度到仿真接口
+        # lift: 高度控制 (0.3 ~ 1.0m)
+        lift_height = 0.5 + self.current_joints[0] * 0.3  # 映射到合理范围
+        lift_height = max(0.3, min(1.0, lift_height))
+        
+        # arm: 旋转角度
+        arm_angle = self.current_joints[1] if len(self.current_joints) > 1 else 0.0
+        
+        # gripper: 夹爪开合 (0.0 ~ 0.05m)
+        gripper_pos = 0.025  # 默认半开
+        if len(self.current_joints) > 2:
+            gripper_pos = 0.025 + self.current_joints[2] * 0.025
+        
+        msg.position = [lift_height, arm_angle, gripper_pos]
+        
+        self.mani_ctrl_pub.publish(msg)
     
     def trapezoidal_profile(self, t):
         """梯形速度曲线"""

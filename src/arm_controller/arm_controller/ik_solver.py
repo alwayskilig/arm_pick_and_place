@@ -57,11 +57,28 @@ class IKSolver:
 
     def __init__(self, num_joints=5):
         self.num_joints = num_joints
-        # WPR1五轴机械臂DH参数（简化版）
+        
+        # WPR1机器人DH参数（单位：米）
+        # 基于实际机器人尺寸
         if num_joints == 5:
-            self.link_lengths = [0.1, 0.3, 0.25, 0.15, 0.1]
+            # 5轴机械臂DH参数
+            self.d = [0.1, 0.0, 0.0, 0.0, 0.0]      # 连杆偏距
+            self.a = [0.0, 0.3, 0.25, 0.0, 0.0]     # 连杆长度
+            self.alpha = [np.pi/2, 0, 0, np.pi/2, 0]  # 连杆扭转
         else:
-            self.link_lengths = [0.1, 0.3, 0.25, 0.15, 0.1, 0.08]
+            # 6轴机械臂DH参数
+            self.d = [0.1, 0.0, 0.0, 0.0, 0.0, 0.08]
+            self.a = [0.0, 0.3, 0.25, 0.0, 0.0, 0.0]
+            self.alpha = [np.pi/2, 0, 0, np.pi/2, 0, 0]
+        
+        # 关节限位（弧度）
+        self.joint_limits = [
+            (-np.pi, np.pi),      # joint1
+            (-np.pi/2, np.pi/2),  # joint2
+            (-np.pi/2, np.pi/2),  # joint3
+            (-np.pi, np.pi),      # joint4
+            (-np.pi, np.pi),      # joint5
+        ]
         
         # 默认运动参数
         self.kinematics_params = KinematicsParams()
@@ -90,28 +107,52 @@ class IKSolver:
             return None
     
     def solve_joint_mode(self, target_pose: Pose) -> Optional[JointAngles]:
-        """关节运动模式求解"""
+        """关节运动模式求解 - 使用几何法"""
         try:
             x, y, z = target_pose.x, target_pose.y, target_pose.z
             
-            # 基座旋转角度
+            # 基座旋转角度（关节1）
             joint1 = np.arctan2(y, x)
             
-            # 计算其他关节角度
+            # 计算到目标的水平距离
             r = np.sqrt(x**2 + y**2)
-            joint2 = np.arctan2(z - self.link_lengths[0], r) - np.pi / 4
-            joint3 = np.pi / 4
-            joint4 = -joint2
+            
+            # 考虑基座高度
+            z_offset = z - self.d[0]
+            
+            # 计算关节2和关节3（使用几何法）
+            # 连杆2和3的长度
+            L2 = self.a[1]  # 0.3m
+            L3 = self.a[2]  # 0.25m
+            
+            # 计算到目标的距离
+            dist = np.sqrt(r**2 + z_offset**2)
+            
+            # 检查是否在工作空间内
+            if dist > (L2 + L3) or dist < abs(L2 - L3):
+                # 目标在工作空间外，使用简化计算
+                joint2 = np.arctan2(z_offset, r) - np.pi/4
+                joint3 = np.pi/4
+            else:
+                # 使用余弦定理计算关节3
+                cos_joint3 = (r**2 + z_offset**2 - L2**2 - L3**2) / (2 * L2 * L3)
+                cos_joint3 = np.clip(cos_joint3, -1.0, 1.0)
+                joint3 = np.arccos(cos_joint3)
+                
+                # 计算关节2
+                beta = np.arctan2(z_offset, r)
+                gamma = np.arctan2(L3 * np.sin(joint3), L2 + L3 * np.cos(joint3))
+                joint2 = beta - gamma
+            
+            # 关节4和关节5（末端姿态）
+            joint4 = 0.0
             joint5 = 0.0
             
-            if self.num_joints == 5:
-                angles = [joint1, joint2, joint3, joint4, joint5]
-            else:
-                joint6 = 0.0
-                angles = [joint1, joint2, joint3, joint4, joint5, joint6]
-            
+            # 限制关节角度在有效范围内
+            angles = [joint1, joint2, joint3, joint4, joint5]
             for i in range(len(angles)):
-                angles[i] = max(-np.pi, min(np.pi, angles[i]))
+                if i < len(self.joint_limits):
+                    angles[i] = max(self.joint_limits[i][0], min(self.joint_limits[i][1], angles[i]))
             
             return JointAngles(angles)
             
@@ -191,26 +232,36 @@ class IKSolver:
         try:
             angles = joint_angles.angles
             
-            if self.num_joints == 5:
-                x = (self.link_lengths[1] * np.cos(angles[0]) * np.cos(angles[1]) +
-                     self.link_lengths[2] * np.cos(angles[0]) * np.cos(angles[1] + angles[2]))
-
-                y = (self.link_lengths[1] * np.sin(angles[0]) * np.cos(angles[1]) +
-                     self.link_lengths[2] * np.sin(angles[0]) * np.cos(angles[1] + angles[2]))
-
-                z = (self.link_lengths[0] +
-                     self.link_lengths[1] * np.sin(angles[1]) +
-                     self.link_lengths[2] * np.sin(angles[1] + angles[2]))
-            else:
-                x = (self.link_lengths[1] * np.cos(angles[0]) * np.cos(angles[1]) +
-                     self.link_lengths[2] * np.cos(angles[0]) * np.cos(angles[1] + angles[2]))
-
-                y = (self.link_lengths[1] * np.sin(angles[0]) * np.cos(angles[1]) +
-                     self.link_lengths[2] * np.sin(angles[0]) * np.cos(angles[1] + angles[2]))
-
-                z = (self.link_lengths[0] +
-                     self.link_lengths[1] * np.sin(angles[1]) +
-                     self.link_lengths[2] * np.sin(angles[1] + angles[2]))
+            # 初始化变换矩阵
+            T = np.eye(4)
+            
+            for i in range(min(len(angles), self.num_joints)):
+                # DH变换矩阵
+                theta = angles[i]
+                d = self.d[i]
+                a = self.a[i]
+                alpha = self.alpha[i]
+                
+                # 旋转矩阵
+                ct = np.cos(theta)
+                st = np.sin(theta)
+                ca = np.cos(alpha)
+                sa = np.sin(alpha)
+                
+                # DH变换矩阵
+                Ti = np.array([
+                    [ct, -st*ca, st*sa, a*ct],
+                    [st, ct*ca, -ct*sa, a*st],
+                    [0, sa, ca, d],
+                    [0, 0, 0, 1]
+                ])
+                
+                T = T @ Ti
+            
+            # 提取位置
+            x = T[0, 3]
+            y = T[1, 3]
+            z = T[2, 3]
             
             return Pose(x, y, z)
             
